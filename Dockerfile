@@ -1,11 +1,19 @@
 FROM php:8.2-apache
 
-# Install dependencies for Laravel and Postgres
+# 1. Install Linux Libraries
+# We need libzip-dev for zip, libicu-dev for intl, libpq-dev for postgres
 RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    libicu-dev \
     libpq-dev \
     unzip \
     zip \
-    && docker-php-ext-install pdo pdo_pgsql
+    git \
+    curl
+
+# 2. Install PHP Extensions
+# Laravel specifically needs zip, intl, and pdo_pgsql
+RUN docker-php-ext-install zip intl pdo pdo_pgsql
 
 # Enable Apache rewrite module
 RUN a2enmod rewrite
