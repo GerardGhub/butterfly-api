@@ -42,6 +42,8 @@ RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
 # 9. Startup Command: This runs migrations automatically and then starts Apache
-CMD sh -c "php artisan migrate --force && apache2-foreground"
+# CMD sh -c "php artisan migrate --force && apache2-foreground"
+# Updated CMD to include --seed
+CMD sh -c "php artisan migrate --force --seed && apache2-foreground"
 
 EXPOSE 80
