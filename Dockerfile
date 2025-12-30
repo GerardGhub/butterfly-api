@@ -1,43 +1,32 @@
+# Stage 1: Build Assets (Node)
+FROM node:20 AS node-builder
+WORKDIR /app
+COPY . .
+RUN npm install && npm run build
+
+# Stage 2: PHP/Apache
 FROM php:8.2-apache
 
-# 1. Install Linux Libraries
-# We need libzip-dev for zip, libicu-dev for intl, libpq-dev for postgres
 RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    libicu-dev \
-    libpq-dev \
-    unzip \
-    zip \
-    git \
-    curl
+    libzip-dev libicu-dev libpq-dev unzip zip git curl \
+    && docker-php-ext-install zip intl pdo pdo_pgsql
 
-# 2. Install PHP Extensions
-# Laravel specifically needs zip, intl, and pdo_pgsql
-RUN docker-php-ext-install zip intl pdo pdo_pgsql
-
-# Enable Apache rewrite module
 RUN a2enmod rewrite
-
-# Set working directory
 WORKDIR /var/www/html
-
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy project files
+# Copy code
 COPY . .
+# Copy compiled assets from Stage 1
+COPY --from=node-builder /app/public/build ./public/build
 
-# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions for Laravel storage
+# Permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Configure Apache to point to /public
+# Apache Config
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
-
-# Allow Render to set the port dynamically
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
-# Default port
 EXPOSE 80
